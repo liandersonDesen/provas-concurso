@@ -31,7 +31,7 @@
         const params = new URLSearchParams(window.location.search);
         const id = params.get('id');
         
-        const response = await fetch(`https://seu-app.render.com/prova/${id}`);
+        const response = await fetch(`https://provas-concurso.onrender.com/prova/${id}`);
         dadosDaProva = await response.json();
 
         document.getElementById('tituloProva').innerText = dadosDaProva.nomeProva;
