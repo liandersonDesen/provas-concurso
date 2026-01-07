@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Criador de Provas</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background-color: #f4f7f6; padding: 20px; }
+        .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); max-width: 600px; margin: auto; }
+        .questao-box { border-left: 5px solid #007bff; background: #f9f9f9; padding: 15px; margin: 15px 0; border-radius: 4px; }
+        input, textarea { width: 100%; margin-bottom: 10px; padding: 8px; box-sizing: border-box; }
+        .btn-add { background: #007bff; color: white; border: none; padding: 10px; cursor: pointer; border-radius: 5px; }
+        .btn-save { background: #28a745; color: white; border: none; padding: 15px; width: 100%; font-size: 16px; margin-top: 20px; cursor: pointer; border-radius: 5px; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2>Criar Nova Prova</h2>
+    <input type="text" id="inputNomeProva" placeholder="Digite o nome da prova (Ex: Prova 1)">
+    
+    <div id="listaQuestoes"></div>
+
+    <button class="btn-add" onclick="adicionarNovaQuestao()">+ Adicionar Questão</button>
+    <button class="btn-save" onclick="salvarProvaCompleta()">SALVAR PROVA NO BANCO</button>
+</div>
+
+<script>
+    let qtdQuestoes = 0;
+
+    function adicionarNovaQuestao() {
+        const container = document.getElementById('listaQuestoes');
+        const div = document.createElement('div');
+        div.className = 'questao-box';
+        div.innerHTML = `
+            <h4>Questão ${qtdQuestoes + 1}</h4>
+            <textarea class="enunciado" placeholder="Enunciado da questão"></textarea>
+            <input type="text" class="opt" placeholder="Alternativa A">
+            <input type="text" class="opt" placeholder="Alternativa B">
+            <input type="text" class="opt" placeholder="Alternativa C">
+            <input type="text" class="opt" placeholder="Alternativa D">
+            <p>Qual é a correta?</p>
+            <select class="correta">
+                <option value="0">Alternativa A</option>
+                <option value="1">Alternativa B</option>
+                <option value="2">Alternativa C</option>
+                <option value="3">Alternativa D</option>
+            </select>
+        `;
+        container.appendChild(div);
+        qtdQuestoes++;
+    }
+
+    async function salvarProvaCompleta() {
+        const nome = document.getElementById('inputNomeProva').value;
+        const boxes = document.querySelectorAll('.questao-box');
+        
+        const dadosProvas = {
+            nomeProva: nome,
+            questoes: []
+        };
+
+        boxes.forEach(box => {
+            const enunciado = box.querySelector('.enunciado').value;
+            const opcoes = Array.from(box.querySelectorAll('.opt')).map(i => i.value);
+            const correta = box.querySelector('.correta').value;
+
+            dadosProvas.questoes.push({
+                enunciado: enunciado,
+                alternativas: opcoes,
+                correta: parseInt(correta)
+            });
+        });
+
+        // Envia para o seu servidor Node.js
+        const response = await fetch('https://provas-concurso.onrender.com/salvar-prova', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(dadosProvas)
+        });
+
+        if (response.ok) {
+            alert("Sucesso! A prova '" + nome + "' foi guardada.");
+            location.reload(); // Limpa a tela
+        }
+    }
+</script>
+</body>
+</html>
