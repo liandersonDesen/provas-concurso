@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Escolha sua Prova</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; background: #f0f2f5; }
+        .container { max-width: 500px; margin: 50px auto; background: white; padding: 30px; border-radius: 10px; }
+        .btn-prova { 
+            display: block; width: 100%; padding: 15px; margin: 10px 0;
+            background: #007bff; color: white; border: none; border-radius: 5px;
+            cursor: pointer; font-size: 18px; transition: 0.3s;
+        }
+        .btn-prova:hover { background: #0056b3; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Provas Disponíveis</h1>
+    <div id="listaDeProvas">Carregando provas...</div>
+</div>
+
+<script>
+    async function carregarProvas() {
+        const response = await fetch('https://seu-app.render.com/listar-provas');
+        const provas = await response.json();
+        
+        const divLista = document.getElementById('listaDeProvas');
+        divLista.innerHTML = ""; // Limpa o "Carregando..."
+
+        provas.forEach(prova => {
+            const btn = document.createElement('button');
+            btn.className = 'btn-prova';
+            btn.innerText = prova.nomeProva;
+            
+            // Ao clicar, envia o ID da prova pela URL para a próxima página
+            btn.onclick = () => {
+                window.location.href = `prova.html?id=${prova._id}`;
+            };
+            
+            divLista.appendChild(btn);
+        });
+    }
+
+    carregarProvas();
+</script>
+</body>
+</html>

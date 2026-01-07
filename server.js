@@ -25,14 +25,42 @@ const ProvaSchema = new mongoose.Schema({
 
 const Prova = mongoose.model('Prova', ProvaSchema);
 
+const verificarSenha = (req, res, next) => {
+    const senhaRecebida = req.headers['x-admin-password'];
+    
+    if (senhaRecebida === process.env.ADMIN_PASSWORD) {
+        next(); // Senha correta, pode continuar para a rota
+    } else {
+        res.status(401).send("Acesso negado: Senha incorreta");
+    }
+};
 // 3. Rota para salvar
-app.post('/salvar-prova', async (req, res) => {
+app.post('/salvar-prova', verificarSenha, async (req, res) => {
     try {
         const novaProva = new Prova(req.body);
         await novaProva.save();
         res.status(201).send("Salvo com sucesso!");
     } catch (err) {
         res.status(500).send("Erro ao salvar");
+    }
+});
+
+app.get('/listar-provas', async (req, res) => {
+    try {
+        // Buscamos todas, mas pedimos apenas o campo 'nomeProva'
+        const lista = await Prova.find({}, 'nomeProva'); 
+        res.json(lista);
+    } catch (err) {
+        res.status(500).json({ erro: "Não foi possível listar as provas" });
+    }
+});
+
+app.get('/prova/:id', async (req, res) => {
+    try {
+        const prova = await Prova.findById(req.params.id);
+        res.json(prova);
+    } catch (err) {
+        res.status(404).json({ erro: "Prova não encontrada" });
     }
 });
 
