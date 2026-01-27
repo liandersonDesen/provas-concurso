@@ -45,6 +45,14 @@ app.post('/salvar-prova', verificarSenha, async (req, res) => {
     }
 });
 
+app.get('/', (req, res) => {
+  res.status(200).json({
+    status: "online",
+    message: "Servidor de provas de concurso rodando!",
+    timestamp: new Date().toISOString()
+  });
+});
+
 app.get('/listar-provas', async (req, res) => {
     try {
         // Buscamos todas, mas pedimos apenas o campo 'nomeProva'
