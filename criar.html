@@ -6,37 +6,82 @@
     <style>
         body { font-family: 'Segoe UI', sans-serif; background-color: #f4f7f6; padding: 20px; }
         .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); max-width: 600px; margin: auto; }
+        
+        /* Estilos das abas/botões de método */
+        .metodo-container { display: flex; gap: 10px; margin-bottom: 20px; }
+        .btn-metodo { flex: 1; padding: 12px; border: 2px solid #007bff; background: white; color: #007bff; cursor: pointer; border-radius: 5px; font-weight: bold; transition: 0.3s; }
+        .btn-metodo.active { background: #007bff; color: white; }
+
         .questao-box { border-left: 5px solid #007bff; background: #f9f9f9; padding: 15px; margin: 15px 0; border-radius: 4px; position: relative; }
         input, textarea, select { width: 100%; margin-bottom: 10px; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
+        
         .btn-add { background: #007bff; color: white; border: none; padding: 10px; cursor: pointer; border-radius: 5px; }
         .btn-save { background: #28a745; color: white; border: none; padding: 15px; width: 100%; font-size: 16px; margin-top: 20px; cursor: pointer; border-radius: 5px; }
+        
         .config-row { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; background: #eef2f7; padding: 10px; border-radius: 5px; }
         .config-row select { margin-bottom: 0; width: auto; }
+        
+        .hidden { display: none; }
     </style>
 </head>
 <body>
 
 <div class="card">
     <h2>Criar Nova Prova</h2>
-    
-    <input type="text" id="inputNomeProva" placeholder="Digite o nome da prova (Ex: Simulado ACS)">
 
-    <div class="config-row">
-        <span>Alternativas por questão:</span>
-        <select id="qtdAlternativasConfig">
-            <option value="4">4 Itens (A, B, C, D)</option>
-            <option value="5" selected>5 Itens (A, B, C, D, E)</option>
-        </select>
+    <div class="metodo-container">
+        <button class="btn-metodo" id="btnImportar" onclick="selecionarMetodo('importar')">📂 Importar CSV</button>
+        <button class="btn-metodo" id="btnManual" onclick="selecionarMetodo('manual')">➕ Adicionar Manual</button>
     </div>
-    
+
+    <input type="text" id="inputNomeProva" placeholder="Digite o nome da prova">
+
+    <div id="janelaImportar" class="hidden">
+        <div class="config-row">
+            <input type="file" id="inputCSV" accept=".csv" />
+            <button class="btn-add" onclick="importarCSV()">Processar CSV</button>
+        </div>
+    </div>
+
+    <div id="janelaManual" class="hidden">
+        <div class="config-row">
+            <span>Alternativas por questão:</span>
+            <select id="qtdAlternativasConfig">
+                <option value="4">4 Itens</option>
+                <option value="5" selected>5 Itens</option>
+            </select>
+        </div>
+    </div>
+
     <div id="listaQuestoes"></div>
 
-    <button class="btn-add" onclick="adicionarNovaQuestao()">+ Adicionar Questão</button>
-    <button class="btn-save" onclick="salvarProvaCompleta()">SALVAR PROVA NO BANCO</button>
+    <div id="areaAcoes" style="margin-top: 20px; display: flex; flex-direction: column; gap: 10px;">
+        <button class="btn-add" id="btnNovoManual" onclick="adicionarNovaQuestao()" style="display: none;">
+            + Adicionar Questão Manual
+        </button>
+        
+        <button class="btn-save" onclick="salvarProvaCompleta()">SALVAR PROVA NO BANCO</button>
+    </div>
 </div>
 
+<script src="importador.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
 <script>
     let qtdQuestoes = 0;
+
+    function selecionarMetodo(metodo) {
+    document.getElementById('janelaImportar').classList.add('hidden');
+    document.getElementById('janelaManual').classList.add('hidden');
+    
+    document.getElementById('btnNovoManual').style.display = 'none';
+
+    if (metodo === 'importar') {
+        document.getElementById('janelaImportar').classList.remove('hidden');
+    } else {
+        document.getElementById('janelaManual').classList.remove('hidden');
+        document.getElementById('btnNovoManual').style.display = 'block';
+    }
+}
 
     function adicionarNovaQuestao() {
         const container = document.getElementById('listaQuestoes');
@@ -46,7 +91,6 @@
         const div = document.createElement('div');
         div.className = 'questao-box';
         
-        // Gerar campos de texto para alternativas dinamicamente
         let htmlCampos = '';
         let htmlOptions = '';
         
@@ -57,14 +101,10 @@
 
         div.innerHTML = `
             <h4>Questão ${qtdQuestoes + 1}</h4>
-            <textarea class="enunciado" placeholder="Enunciado da questão (Pode usar Enter para quebras de linha)"></textarea>
-            
+            <textarea class="enunciado" placeholder="Enunciado da questão"></textarea>
             ${htmlCampos}
-            
             <p>Qual é a correta?</p>
-            <select class="correta">
-                ${htmlOptions}
-            </select>
+            <select class="correta">${htmlOptions}</select>
             <button onclick="this.parentElement.remove()" style="background:none; border:none; color:red; cursor:pointer; font-size:12px;">[Remover Questão]</button>
         `;
 
@@ -73,18 +113,16 @@
     }
 
     async function salvarProvaCompleta() {
-        const senha = prompt("Digite a senha do administrador para salvar");
-
-        if(!senha || !senha.trim()){
-            alert("Operação cancelada. Senha necessária");
-            return;
-        }
+        const senha = prompt("Digite a senha do administrador");
+        if(!senha) return;
 
         const nome = document.getElementById('inputNomeProva').value;
         const boxes = document.querySelectorAll('.questao-box');
         
-        if(!nome) { alert("Dê um nome para a prova!"); return; }
-        if(boxes.length === 0) { alert("Adicione pelo menos uma questão!"); return; }
+        if(!nome || boxes.length === 0) { 
+            alert("Preencha o nome e adicione questões!"); 
+            return; 
+        }
 
         const dadosProvas = {
             nomeProva: nome,
@@ -93,7 +131,6 @@
 
         boxes.forEach(box => {
             const enunciado = box.querySelector('.enunciado').value;
-            // Pega todos os inputs de classe 'opt' dentro DESTA caixa
             const opcoes = Array.from(box.querySelectorAll('.opt')).map(i => i.value);
             const correta = box.querySelector('.correta').value;
 
@@ -115,14 +152,13 @@
             });
 
             if (response.ok) {
-                alert("Sucesso! A prova '" + nome + "' foi guardada.");
+                alert("Sucesso!");
                 location.reload();
             } else {
-                const erroMsg = await response.text();
-                alert("Erro ao salvar: " + erroMsg);
+                alert("Erro ao salvar.");
             }
         } catch (error) {
-            alert("Erro de conexão. O servidor pode estar dormindo, tente novamente em 30 segundos.");
+            alert("Erro de conexão.");
         }
     }
 </script>
